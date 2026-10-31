@@ -1,0 +1,1228 @@
+
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(const ChitChatApp());
+}
+
+const Color bg = Color(0xFF10101D);
+const Color panel = Color(0xFF202035);
+const Color pink = Color(0xFFFF4D8D);
+
+class LiveRoom {
+  String name;
+  String host;
+  String topic;
+  bool isPublic;
+  int capacity;
+  int members;
+  bool isActive;
+  bool isMuted;
+  List<String> memberNames;
+
+  LiveRoom({
+    required this.name,
+    required this.host,
+    required this.topic,
+    required this.isPublic,
+    required this.capacity,
+    this.members = 1,
+    this.isActive = true,
+    this.isMuted = false,
+    List<String>? memberNames,
+  }) : memberNames = memberNames ?? [host];
+}
+
+class ChitChatApp extends StatelessWidget {
+  const ChitChatApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Chit Chat',
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: bg,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: pink,
+          brightness: Brightness.dark,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: bg,
+          elevation: 0,
+        ),
+      ),
+      home: const LoginPage(),
+    );
+  }
+}
+
+// ---------------- LOGIN PAGE ----------------
+
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final nameController = TextEditingController();
+  final phoneController = TextEditingController();
+  bool accepted = false;
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    phoneController.dispose();
+    super.dispose();
+  }
+
+  void continueLogin() {
+    if (nameController.text.trim().isEmpty ||
+        phoneController.text.trim().length != 10 ||
+        !accepted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Name, valid mobile number and terms are required'),
+        ),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OtpPage(
+          name: nameController.text.trim(),
+          phone: phoneController.text.trim(),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                const Icon(Icons.forum, color: pink, size: 75),
+                const SizedBox(height: 12),
+                const Text(
+                  'CHIT CHAT',
+                  style: TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                  ),
+                ),
+                const Text(
+                  'Connect • Talk • Enjoy',
+                  style: TextStyle(color: Colors.white60),
+                ),
+                const SizedBox(height: 35),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Welcome!',
+                    style: TextStyle(
+                      fontSize: 25,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Your Name',
+                    prefixIcon: Icon(Icons.person),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 15),
+                TextField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  maxLength: 10,
+                  decoration: const InputDecoration(
+                    labelText: 'Mobile Number',
+                    prefixIcon: Icon(Icons.phone_android),
+                    prefixText: '+91 ',
+                    border: OutlineInputBorder(),
+                    counterText: '',
+                  ),
+                ),
+                const SizedBox(height: 15),
+                CheckboxListTile(
+                  value: accepted,
+                  onChanged: (v) {
+                    setState(() => accepted = v ?? false);
+                  },
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text(
+                    'I agree to Terms & Conditions',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+                const SizedBox(height: 15),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: continueLogin,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: pink,
+                    ),
+                    child: const Text(
+                      'Continue',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text('OR'),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => showMessage(
+                    context,
+                    'Google Sign-In needs authentication setup.',
+                  ),
+                  icon: const Icon(Icons.g_mobiledata, size: 28),
+                  label: const Text('Sign up with Google'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => showMessage(
+                    context,
+                    'Facebook Sign-In needs authentication setup.',
+                  ),
+                  icon: const Icon(Icons.facebook),
+                  label: const Text('Continue with Facebook'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------- OTP PAGE ----------------
+
+class OtpPage extends StatefulWidget {
+  final String name;
+  final String phone;
+
+  const OtpPage({
+    super.key,
+    required this.name,
+    required this.phone,
+  });
+
+  @override
+  State<OtpPage> createState() => _OtpPageState();
+}
+
+class _OtpPageState extends State<OtpPage> {
+  final otpController = TextEditingController();
+
+  @override
+  void dispose() {
+    otpController.dispose();
+    super.dispose();
+  }
+
+  void verifyOtp() {
+    if (otpController.text.trim() != '123456') {
+      showMessage(context, 'Incorrect demo OTP. Use 123456.');
+      return;
+    }
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MainPage(userName: widget.name),
+      ),
+      (route) => false,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('OTP Verification')),
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.verified_user, color: pink, size: 65),
+            const SizedBox(height: 20),
+            const Text(
+              'Verify your mobile number',
+              style: TextStyle(fontSize: 22),
+            ),
+            const SizedBox(height: 10),
+            Text('+91 ${widget.phone}'),
+            const SizedBox(height: 25),
+            TextField(
+              controller: otpController,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              decoration: const InputDecoration(
+                labelText: 'Enter Demo OTP',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const Text(
+              'Demo OTP: 123456',
+              style: TextStyle(color: Colors.greenAccent),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: verifyOtp,
+                child: const Text('Verify & Login'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------- MAIN APP ----------------
+
+class MainPage extends StatefulWidget {
+  final String userName;
+
+  const MainPage({super.key, required this.userName});
+
+  @override
+  State<MainPage> createState() => _MainPageState();
+}
+
+class _MainPageState extends State<MainPage> {
+  int selectedTab = 0;
+  bool hindi = true;
+  final searchController = TextEditingController();
+
+  late List<LiveRoom> rooms;
+
+  @override
+  void initState() {
+    super.initState();
+    rooms = [
+      LiveRoom(
+        name: 'Friendship Zone',
+        host: 'Rahul',
+        topic: 'Friendship',
+        isPublic: true,
+        capacity: 50,
+        members: 28,
+        memberNames: ['Rahul', 'Aman', 'Priya'],
+      ),
+      LiveRoom(
+        name: 'Music Lovers',
+        host: 'Aman',
+        topic: 'Music',
+        isPublic: true,
+        capacity: 30,
+        members: 16,
+        memberNames: ['Aman', 'Neha'],
+      ),
+      LiveRoom(
+        name: 'Chit Chat Family',
+        host: 'Priya',
+        topic: 'Talk & Fun',
+        isPublic: true,
+        capacity: 50,
+        members: 42,
+        memberNames: ['Priya', 'Ravi', 'Simran'],
+      ),
+      LiveRoom(
+        name: 'Gaming Club',
+        host: 'Arjun',
+        topic: 'Gaming',
+        isPublic: false,
+        capacity: 20,
+        members: 12,
+        memberNames: ['Arjun', 'Karan'],
+      ),
+    ];
+  }
+
+  String t(String hi, String en) => hindi ? hi : en;
+
+  void refresh() => setState(() {});
+
+  Future<void> createRoom() async {
+    final room = await Navigator.push<LiveRoom>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const CreateLivePage(),
+      ),
+    );
+
+    if (room != null) {
+      setState(() {
+        rooms.insert(0, room);
+        selectedTab = 1;
+      });
+    }
+  }
+
+  void openRoom(LiveRoom room) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RoomPage(
+          room: room,
+          currentUser: widget.userName,
+          onChanged: refresh,
+          onEnded: () {
+            setState(() {
+              room.isActive = false;
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final query = searchController.text.toLowerCase();
+
+    final activeRooms = rooms.where((room) {
+      return room.isActive &&
+          room.name.toLowerCase().contains(query);
+    }).toList();
+
+    final pages = [
+      homeContent(activeRooms),
+      liveContent(activeRooms),
+      const PlusPage(),
+      const InboxPage(),
+      ProfilePage(userName: widget.userName),
+    ];
+
+    return Scaffold(
+      body: SafeArea(child: pages[selectedTab]),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: selectedTab,
+        onTap: (index) {
+          if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PlusPage()),
+            );
+          } else {
+            setState(() => selectedTab = index);
+          }
+        },
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: panel,
+        selectedItemColor: pink,
+        unselectedItemColor: Colors.white60,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.live_tv),
+            label: 'Live',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.add_circle, size: 32),
+            label: 'Plus',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.mail),
+            label: 'Inbox',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------- HOME CONTENT ----------------
+
+  Widget homeContent(List<LiveRoom> activeRooms) {
+    return Column(
+      children: [
+        topBar(),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Container(
+            height: 145,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [pink, Color(0xFF7928CA), Color(0xFF282B83)],
+              ),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Stack(
+              children: [
+                const Positioned(
+                  right: 15,
+                  top: 10,
+                  child: Icon(
+                    Icons.mic,
+                    size: 100,
+                    color: Colors.white24,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'LIVE PITCH',
+                        style: TextStyle(
+                          fontSize: 25,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(t(
+                        'दोस्तों से जुड़ें और बातें करें!',
+                        'Connect with friends and chat!',
+                      )),
+                      const SizedBox(height: 10),
+                      const Text('● LIVE NOW'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: InkWell(
+            onTap: createRoom,
+            child: Container(
+              padding: const EdgeInsets.all(15),
+              decoration: BoxDecoration(
+                color: panel,
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: pink),
+              ),
+              child: Row(
+                children: [
+                  const CircleAvatar(
+                    backgroundColor: pink,
+                    child: Icon(Icons.add, color: Colors.white),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      t('लाइव रूम बनाएं', 'Create Live Room'),
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_ios, size: 17),
+                ],
+              ),
+            ),
+          ),
+        ),
+        roomHeading(activeRooms.length),
+        Expanded(child: roomList(activeRooms)),
+      ],
+    );
+  }
+
+  Widget topBar() {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          InkWell(
+            onTap: () => setState(() => hindi = !hindi),
+            child: Container(
+              padding: const EdgeInsets.all(11),
+              decoration: BoxDecoration(
+                color: panel,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                hindi ? 'हिंदी' : 'EN',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: searchController,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: t('रूम खोजें...', 'Search rooms...'),
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: panel,
+                contentPadding: EdgeInsets.zero,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => RankingPage(rooms: rooms),
+                ),
+              );
+            },
+            icon: const Icon(
+              Icons.emoji_events,
+              color: Colors.amber,
+              size: 29,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget roomHeading(int count) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+      child: Row(
+        children: [
+          const Icon(Icons.wifi_tethering, color: pink),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              t('एक्टिव लाइव रूम', 'Active Live Rooms'),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Text('$count ${t('रूम', 'Rooms')}'),
+        ],
+      ),
+    );
+  }
+
+  Widget roomList(List<LiveRoom> list) {
+    if (list.isEmpty) {
+      return Center(
+        child: Text(t('कोई एक्टिव रूम नहीं है', 'No active rooms found')),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      itemCount: list.length,
+      itemBuilder: (context, index) {
+        final room = list[index];
+
+        return Card(
+          color: panel,
+          margin: const EdgeInsets.only(bottom: 10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.all(10),
+            leading: CircleAvatar(
+              radius: 27,
+              backgroundColor: Colors.primaries[index % Colors.primaries.length],
+              child: const Icon(Icons.groups, color: Colors.white),
+            ),
+            title: Text(
+              room.name,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text('${room.topic} • Host: ${room.host}'),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.circle, color: Colors.greenAccent, size: 10),
+                const SizedBox(height: 5),
+                Text('${room.members}/${room.capacity}'),
+                const Text('Members', style: TextStyle(fontSize: 10)),
+              ],
+            ),
+            onTap: () => openRoom(room),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget liveContent(List<LiveRoom> activeRooms) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Live Rooms',
+                  style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold),
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: createRoom,
+                icon: const Icon(Icons.add),
+                label: const Text('Create'),
+              ),
+            ],
+          ),
+        ),
+        roomHeading(activeRooms.length),
+        Expanded(child: roomList(activeRooms)),
+      ],
+    );
+  }
+}
+
+// ---------------- CREATE LIVE PAGE ----------------
+
+class CreateLivePage extends StatefulWidget {
+  const CreateLivePage({super.key});
+
+  @override
+  State<CreateLivePage> createState() => _CreateLivePageState();
+}
+
+class _CreateLivePageState extends State<CreateLivePage> {
+  final nameController = TextEditingController();
+  final topicController = TextEditingController();
+  final capacityController = TextEditingController(text: '50');
+  bool isPublic = true;
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    topicController.dispose();
+    capacityController.dispose();
+    super.dispose();
+  }
+
+  void create() {
+    final name = nameController.text.trim();
+    final topic = topicController.text.trim();
+    final capacity = int.tryParse(capacityController.text.trim()) ?? 0;
+
+    if (name.isEmpty || topic.isEmpty || capacity < 2 || capacity > 100) {
+      showMessage(context, 'Enter room details. Capacity must be 2–100.');
+      return;
+    }
+
+    Navigator.pop(
+      context,
+      LiveRoom(
+        name: name,
+        host: 'You',
+        topic: topic,
+        isPublic: isPublic,
+        capacity: capacity,
+        members: 1,
+        memberNames: ['You'],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Create Live Room')),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          const Icon(Icons.live_tv, size: 65, color: pink),
+          const SizedBox(height: 20),
+          TextField(
+            controller: nameController,
+            decoration: const InputDecoration(
+              labelText: 'Room Name',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 15),
+          TextField(
+            controller: topicController,
+            decoration: const InputDecoration(
+              labelText: 'Room Topic',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 15),
+          TextField(
+            controller: capacityController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Maximum Members (2–100)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Room Privacy',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          RadioListTile<bool>(
+            value: true,
+            groupValue: isPublic,
+            onChanged: (v) => setState(() => isPublic = v!),
+            title: const Text('Public Room'),
+          ),
+          RadioListTile<bool>(
+            value: false,
+            groupValue: isPublic,
+            onChanged: (v) => setState(() => isPublic = v!),
+            title: const Text('Private Room'),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 50,
+            child: ElevatedButton.icon(
+              onPressed: create,
+              icon: const Icon(Icons.wifi_tethering),
+              label: const Text('Create Live'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------- ROOM DETAILS & HOST CONTROLS ----------------
+
+class RoomPage extends StatefulWidget {
+  final LiveRoom room;
+  final String currentUser;
+  final VoidCallback onChanged;
+  final VoidCallback onEnded;
+
+  const RoomPage({
+    super.key,
+    required this.room,
+    required this.currentUser,
+    required this.onChanged,
+    required this.onEnded,
+  });
+
+  @override
+  State<RoomPage> createState() => _RoomPageState();
+}
+
+class _RoomPageState extends State<RoomPage> {
+  bool joined = false;
+  bool muted = false;
+
+  bool get isHost => widget.room.host == widget.currentUser ||
+      (widget.room.host == 'You' && widget.currentUser.isNotEmpty);
+
+  void joinRoom() {
+    if (widget.room.members >= widget.room.capacity) {
+      showMessage(context, 'Room is full.');
+      return;
+    }
+
+    if (!widget.room.isPublic && widget.room.host != 'You') {
+      showMessage(context, 'Private room: host permission required.');
+      return;
+    }
+
+    setState(() {
+      joined = true;
+      widget.room.members++;
+      widget.room.memberNames.add(widget.currentUser);
+    });
+    widget.onChanged();
+  }
+
+  void leaveRoom() {
+    if (!joined) return;
+
+    setState(() {
+      joined = false;
+      widget.room.members--;
+      widget.room.memberNames.remove(widget.currentUser);
+    });
+    widget.onChanged();
+  }
+
+  void hostAction(String action) {
+    showMessage(context, '$action: Demo action selected.');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final room = widget.room;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(room.name),
+        actions: [
+          if (isHost)
+            IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  builder: (_) => hostPanel(),
+                );
+              },
+            ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(18),
+        children: [
+          Container(
+            height: 130,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [pink, Colors.deepPurple],
+              ),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Center(
+              child: Icon(Icons.groups, size: 75),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            room.name,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          Text('Topic: ${room.topic}'),
+          Text('Host: ${room.host}'),
+          Text('Privacy: ${room.isPublic ? 'Public' : 'Private'}'),
+          Text('Members: ${room.members}/${room.capacity}'),
+          const SizedBox(height: 20),
+          const Text(
+            'Room Members',
+            style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          ...room.memberNames.map(
+            (member) => Card(
+              color: panel,
+              child: ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.person)),
+                title: Text(member),
+                subtitle: Text(member == room.host ? 'Host' : 'Member'),
+                trailing: isHost && member != room.host
+                    ? IconButton(
+                        icon: const Icon(Icons.person_remove),
+                        onPressed: () {
+                          setState(() {
+                            room.memberNames.remove(member);
+                            room.members--;
+                          });
+                          widget.onChanged();
+                        },
+                      )
+                    : null,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          if (!joined && !isHost)
+            ElevatedButton(
+              onPressed: joinRoom,
+              child: const Text('Join Room'),
+            ),
+          if (joined)
+            ElevatedButton(
+              onPressed: leaveRoom,
+              child: const Text('Leave Room'),
+            ),
+          if (isHost) ...[
+            const Divider(height: 35),
+            const Text(
+              'Host Dashboard',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                actionButton('Co-host', Icons.star),
+                actionButton('Moderator', Icons.shield),
+                actionButton('Mute', Icons.mic_off),
+                actionButton('Invite', Icons.person_add),
+              ],
+            ),
+            const SizedBox(height: 15),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () {
+                widget.onEnded();
+                Navigator.pop(context);
+              },
+              child: const Text('End Live Room'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget actionButton(String label, IconData icon) {
+    return OutlinedButton.icon(
+      onPressed: () => hostAction(label),
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+    );
+  }
+
+  Widget hostPanel() {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Host Controls',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            ListTile(
+              leading: const Icon(Icons.star),
+              title: const Text('Assign Co-host'),
+              onTap: () {
+                Navigator.pop(context);
+                hostAction('Assign Co-host');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.shield),
+              title: const Text('Assign Moderator'),
+              onTap: () {
+                Navigator.pop(context);
+                hostAction('Assign Moderator');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.mic_off),
+              title: const Text('Mute Room'),
+              onTap: () {
+                Navigator.pop(context);
+                setState(() => muted = !muted);
+                hostAction(muted ? 'Room muted' : 'Room unmuted');
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------- RANKING PAGE ----------------
+
+class RankingPage extends StatelessWidget {
+  final List<LiveRoom> rooms;
+
+  const RankingPage({super.key, required this.rooms});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Ranking')),
+      body: ListView(
+        padding: const EdgeInsets.all(15),
+        children: [
+          const Icon(Icons.emoji_events, color: Colors.amber, size: 70),
+          const Center(
+            child: Text(
+              'Top Live Rooms',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(height: 15),
+          ...rooms.where((r) => r.isActive).toList().asMap().entries.map(
+            (entry) => Card(
+              color: panel,
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Colors.amber,
+                  child: Text('${entry.key + 1}'),
+                ),
+                title: Text(entry.value.name),
+                trailing: Text('${entry.value.members} Members'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------- PLUS PAGE ----------------
+
+class PlusPage extends StatelessWidget {
+  const PlusPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Create Post')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(25),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.add_circle, color: pink, size: 80),
+              const SizedBox(height: 20),
+              const Text(
+                'Share your moments',
+                style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: () => showMessage(
+                  context,
+                  'Photo upload needs storage setup.',
+                ),
+                icon: const Icon(Icons.photo),
+                label: const Text('Add Photo'),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => showMessage(
+                  context,
+                  'Video upload needs storage setup.',
+                ),
+                icon: const Icon(Icons.videocam),
+                label: const Text('Add Video'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------- INBOX PAGE ----------------
+
+class InboxPage extends StatelessWidget {
+  const InboxPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Inbox')),
+      body: ListView(
+        children: const [
+          ListTile(
+            leading: CircleAvatar(child: Icon(Icons.person)),
+            title: Text('Welcome to Chit Chat'),
+            subtitle: Text('Your messages will appear here.'),
+          ),
+          Divider(),
+          ListTile(
+            leading: CircleAvatar(child: Icon(Icons.notifications)),
+            title: Text('Notifications'),
+            subtitle: Text('You have no new notifications.'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------- PROFILE PAGE ----------------
+
+class ProfilePage extends StatelessWidget {
+  final String userName;
+
+  const ProfilePage({super.key, required this.userName});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('My Profile')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircleAvatar(
+              radius: 50,
+              backgroundColor: pink,
+              child: Icon(Icons.person, size: 55),
+            ),
+            const SizedBox(height: 15),
+            Text(
+              userName,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text('Chit Chat Member'),
+            const SizedBox(height: 20),
+            const ListTile(
+              leading: Icon(Icons.edit),
+              title: Text('Edit Profile'),
+              trailing: Icon(Icons.arrow_forward_ios, size: 15),
+            ),
+            const ListTile(
+              leading: Icon(Icons.settings),
+              title: Text('Settings'),
+              trailing: Icon(Icons.arrow_forward_ios, size: 15),
+            ),
+            const ListTile(
+              leading: Icon(Icons.help),
+              title: Text('Help & Support'),
+              trailing: Icon(Icons.arrow_forward_ios, size: 15),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------- COMMON MESSAGE ----------------
+
+void showMessage(BuildContext context, String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(message)),
+  );
+}

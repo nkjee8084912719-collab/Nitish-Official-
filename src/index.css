@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@layer utilities {
+  @keyframes floatUp {
+    0% {
+      opacity: 1;
+      transform: translateY(0) scale(0.8);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-160px) scale(1.4);
+    }
+  }
+
+  .animate-float-up {
+    animation: floatUp 1.8s ease-out forwards;
+  }
+}
+
+/* Hide scrollbar for clean mobile UI */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
